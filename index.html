@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ever After Mood Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-actions">
+    <button class="btn-ghost" onclick="exportData()">Export</button>
+    <button class="btn-ghost" onclick="importData()">Import</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
+  </div>
+
+  <div class="moon-wrap">
+    <svg class="moon-svg" width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="moonGrad" cx="38%" cy="32%" r="60%" fx="38%" fy="32%">
+          <stop offset="0%"   stop-color="#edd875"/>
+          <stop offset="40%"  stop-color="#c9a84c"/>
+          <stop offset="100%" stop-color="#7a5e18"/>
+        </radialGradient>
+        <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#c9a84c" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+        <clipPath id="moonClip">
+          <circle cx="44" cy="44" r="30"/>
+        </clipPath>
+      </defs>
+      <!-- outer glow ring -->
+      <circle cx="44" cy="44" r="42" fill="url(#moonGlow)"/>
+      <!-- moon disc -->
+      <circle cx="44" cy="44" r="30" fill="url(#moonGrad)" filter="url(#softGlow)"/>
+      <!-- phase shadow — offset to create gibbous waning look -->
+      <circle cx="56" cy="44" r="27" fill="rgba(8,14,10,0.84)" clip-path="url(#moonClip)"/>
+      <!-- craters -->
+      <circle cx="28" cy="36" r="3"   fill="rgba(120,88,16,0.28)"/>
+      <circle cx="24" cy="50" r="1.8" fill="rgba(120,88,16,0.2)"/>
+      <circle cx="36" cy="54" r="3.5" fill="rgba(120,88,16,0.18)"/>
+      <circle cx="20" cy="40" r="1.2" fill="rgba(120,88,16,0.15)"/>
+      <!-- rim highlight -->
+      <circle cx="44" cy="44" r="30" fill="none" stroke="rgba(237,216,117,0.3)" stroke-width="1"/>
+      <!-- small star marks near moon -->
+      <circle cx="76" cy="18" r="1.2" fill="rgba(201,168,76,0.6)"/>
+      <circle cx="72" cy="24" r="0.8" fill="rgba(201,168,76,0.4)"/>
+      <circle cx="80" cy="28" r="0.7" fill="rgba(201,168,76,0.35)"/>
+    </svg>
+  </div>
+
+  <h1 class="header-title">Ever After <em>Mood Tracker</em></h1>
+  <p class="header-sub">Private. Honest. Yours.</p>
+</header>
+
+<div class="gold-divider"></div>
+
+<!-- NAV — centered -->
+<nav>
+  <button class="tab-btn active" onclick="switchTab('today', this)">Today</button>
+  <button class="tab-btn" onclick="switchTab('patterns', this)">My Patterns</button>
+  <button class="tab-btn" onclick="switchTab('triggers', this)">Triggers &amp; Flares</button>
+  <button class="tab-btn" onclick="switchTab('medications', this)">Medications &amp; Wellness</button>
+  <button class="tab-btn" onclick="switchTab('wins', this)">My Wins</button>
+  <button class="tab-btn" onclick="switchTab('crisis', this)">Crisis &amp; Calm</button>
+</nav>
+
+<main>
+
+  <!-- TAB: TODAY -->
+  <div id="tab-today" class="fade-in">
+    <h2 class="section-title">Today</h2>
+    <p class="section-hook">"How are you, really? No, actually."</p>
+
+    <div class="card">
+      <div class="card-title">Daily Check-In</div>
+
+      <div class="form-grid">
+
+        <div class="form-row">
+          <div class="field-group">
+            <label for="entryDate">Date</label>
+            <input type="date" id="entryDate">
+          </div>
+          <div class="field-group">
+            <label for="moodWord">How would you name it?</label>
+            <select id="moodWord">
+              <option value="">— choose one —</option>
+              <option>Energized</option>
+              <option>Content</option>
+              <option>Anxious</option>
+              <option>Flat</option>
+              <option>Irritable</option>
+              <option>Overwhelmed</option>
+              <option>Hopeful</option>
+              <option>Numb</option>
+              <option>Grateful</option>
+              <option>Fragile</option>
+              <option>Calm</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label">Mood intensity</span>
+              <span class="slider-value" id="moodVal">5<span>/10</span></span>
+            </div>
+            <input type="range" id="moodSlider" min="1" max="10" value="5"
+              oninput="document.getElementById('moodVal').innerHTML=this.value+'<span>/10</span>'">
+          </div>
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label">Energy level</span>
+              <span class="slider-value" id="energyVal">5<span>/10</span></span>
+            </div>
+            <input type="range" id="energySlider" min="1" max="10" value="5"
+              oninput="document.getElementById('energyVal').innerHTML=this.value+'<span>/10</span>'">
+          </div>
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label">Anxiety level</span>
+              <span class="slider-value" id="anxietyVal">5<span>/10</span></span>
+            </div>
+            <input type="range" id="anxietySlider" min="1" max="10" value="5"
+              oninput="document.getElementById('anxietyVal').innerHTML=this.value+'<span>/10</span>'">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label for="sleepHours">Sleep last night (hours)</label>
+            <input type="number" id="sleepHours" min="0" max="24" step="0.5" placeholder="e.g. 6.5">
+          </div>
+          <div class="field-group">
+            <label for="sleepQuality">Sleep quality</label>
+            <select id="sleepQuality">
+              <option value="">— how was it —</option>
+              <option>Poor</option>
+              <option>Fair</option>
+              <option>Good</option>
+              <option>Great</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="winYesterday">One win from yesterday</label>
+          <input type="text" id="winYesterday" placeholder="Even 'I got out of bed' counts.">
+        </div>
+
+        <div class="field-group">
+          <label for="intentionToday">One intention for today</label>
+          <input type="text" id="intentionToday" placeholder="Just one.">
+        </div>
+
+        <div class="field-group">
+          <label for="notes">Notes</label>
+          <textarea id="notes" placeholder="Whatever's on your mind. No audience here."></textarea>
+        </div>
+
+      </div>
+
+      <button class="btn-primary" onclick="saveEntry()">Save today's entry</button>
+    </div>
+
+    <!-- Entry log -->
+    <div class="log-section">
+      <div class="log-header">
+        <span class="log-title">Previous entries</span>
+        <span class="log-count" id="daysCount">Days with you: 0</span>
+      </div>
+      <div id="entryList">
+        <div class="empty-state">
+          Nothing here yet. Your first entry is waiting whenever you're ready.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- stub tabs -->
+  <div id="tab-patterns" style="display:none" class="">
+    <h2 class="section-title">My Patterns</h2>
+    <p class="section-hook">"The story your days are telling. Ready to read it?"</p>
+
+    <div class="stat-grid" id="patternStats">
+      <div class="stat-card"><div class="stat-value" id="statDays">0</div><div class="stat-label">Days with you</div></div>
+      <div class="stat-card"><div class="stat-value" id="statAvgMood">—</div><div class="stat-label">Average mood</div></div>
+      <div class="stat-card"><div class="stat-value" id="statAvgSleep">—</div><div class="stat-label">Avg sleep (hrs)</div></div>
+      <div class="stat-card"><div class="stat-value" id="statBestDay">—</div><div class="stat-label">Best day of week</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Mood over time</div>
+      <div class="chart-toggle">
+        <button class="toggle-btn active" onclick="setChartRange(7, this)">7 days</button>
+        <button class="toggle-btn" onclick="setChartRange(30, this)">30 days</button>
+        <button class="toggle-btn" onclick="setChartRange(90, this)">90 days</button>
+      </div>
+      <div class="chart-container" style="height:200px">
+        <svg class="chart-svg" id="moodChart" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
+        <div class="chart-tooltip" id="moodTooltip"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Energy trends</div>
+      <div class="chart-container" style="height:160px">
+        <svg class="chart-svg" id="energyChart" viewBox="0 0 800 160" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Anxiety trends</div>
+      <div class="chart-container" style="height:160px">
+        <svg class="chart-svg" id="anxietyChart" viewBox="0 0 800 160" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sleep vs mood</div>
+      <div class="chart-container" style="height:160px">
+        <svg class="chart-svg" id="sleepChart" viewBox="0 0 800 160" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+  </div>
+  <div id="tab-triggers" style="display:none">
+    <h2 class="section-title">Triggers &amp; Flares</h2>
+    <p class="section-hook">"Name it. (Yes, even that one.)"</p>
+
+    <div class="card">
+      <div class="card-title">Log a trigger</div>
+      <div class="form-grid">
+        <div class="form-row">
+          <div class="field-group">
+            <label for="tDate">Date</label>
+            <input type="date" id="tDate">
+          </div>
+          <div class="field-group">
+            <label for="tType">Trigger type</label>
+            <select id="tType">
+              <option value="">— what kind —</option>
+              <option>Environmental</option>
+              <option>Relationship</option>
+              <option>Work</option>
+              <option>Health</option>
+              <option>Financial</option>
+              <option>Unknown</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="tWhat">What happened</label>
+          <input type="text" id="tWhat" placeholder="Describe it in your own words.">
+        </div>
+        <div class="form-row">
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label">Severity</span>
+              <span class="slider-value" id="tSevVal">5<span>/10</span></span>
+            </div>
+            <input type="range" id="tSeverity" min="1" max="10" value="5"
+              oninput="document.getElementById('tSevVal').innerHTML=this.value+'<span>/10</span>'">
+          </div>
+          <div class="field-group">
+            <label for="tDuration">How long did it last?</label>
+            <input type="text" id="tDuration" placeholder="e.g. 2 hours, all day">
+          </div>
+        </div>
+        <div class="field-group">
+          <label>What else was activated?</label>
+          <div style="display:flex;gap:1.2rem;flex-wrap:wrap;margin-top:0.3rem">
+            <label class="check-pill"><input type="checkbox" id="tPTSD"> PTSD flare</label>
+            <label class="check-pill"><input type="checkbox" id="tADHD"> ADHD focus disruption</label>
+            <label class="check-pill"><input type="checkbox" id="tAnxiety"> Anxiety spike</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="tHelped">What helped (if anything)</label>
+          <input type="text" id="tHelped" placeholder="Even 'nothing yet' is useful information.">
+        </div>
+      </div>
+      <button class="btn-primary" onclick="saveTrigger()">Save trigger</button>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <span class="log-title">Trigger log</span>
+        <span class="log-count" id="triggerCount">0 logged</span>
+      </div>
+      <div id="triggerList"><div class="empty-state">No triggers logged yet. Naming them is the first step.</div></div>
+    </div>
+  </div>
+  <div id="tab-medications" style="display:none">
+    <h2 class="section-title">Medications &amp; Wellness</h2>
+    <p class="section-hook">"Private. Yours. Nobody's business but yours."</p>
+
+    <div class="card">
+      <div class="card-title">Log medication</div>
+      <p class="privacy-note">This information never leaves your device. Ever.</p>
+      <div class="form-grid" style="margin-top:1.2rem">
+        <div class="form-row">
+          <div class="field-group">
+            <label for="mDate">Date</label>
+            <input type="date" id="mDate">
+          </div>
+          <div class="field-group">
+            <label for="mName">Medication name</label>
+            <input type="text" id="mName" placeholder="e.g. Lamictal">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field-group">
+            <label for="mDosage">Dosage</label>
+            <input type="text" id="mDosage" placeholder="e.g. 200mg">
+          </div>
+          <div class="field-group">
+            <label>Time taken</label>
+            <div class="check-group" style="margin-top:0.4rem">
+              <label class="check-pill"><input type="checkbox" id="mMorn"> Morning</label>
+              <label class="check-pill"><input type="checkbox" id="mAftn"> Afternoon</label>
+              <label class="check-pill"><input type="checkbox" id="mEvng"> Evening</label>
+              <label class="check-pill"><input type="checkbox" id="mNght"> Night</label>
+            </div>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="mNote">How I felt today</label>
+          <textarea id="mNote" placeholder="Side effects, mood changes, anything worth noting." style="min-height:72px"></textarea>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="saveMed()">Save medication log</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Wellness check-in</div>
+      <div class="form-grid" style="margin-top:0.5rem">
+        <div class="field-group">
+          <label>Water intake</label>
+          <div class="water-counter" style="margin-top:0.5rem">
+            <button class="water-btn" onclick="adjustWater(-1)">−</button>
+            <span class="water-count" id="waterCount">0</span>
+            <span class="water-label">glasses today</span>
+            <button class="water-btn" onclick="adjustWater(1)">+</button>
+          </div>
+        </div>
+        <div>
+          <div class="toggle-row">
+            <span class="toggle-row-label">Movement today</span>
+            <label class="switch"><input type="checkbox" id="wMovement"><span class="switch-track"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-row-label">Fresh air</span>
+            <label class="switch"><input type="checkbox" id="wAir"><span class="switch-track"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-row-label">Talked to someone today</span>
+            <label class="switch"><input type="checkbox" id="wConnection"><span class="switch-track"></span></label>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="saveWellness()">Save wellness check-in</button>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <span class="log-title">Medication log</span>
+        <span class="log-count" id="medCount">0 entries</span>
+      </div>
+      <div id="medList"><div class="empty-state">Nothing logged yet. Your data stays here and only here.</div></div>
+    </div>
+  </div>
+  <div id="tab-wins" style="display:none">
+    <h2 class="section-title">My Wins</h2>
+    <p class="section-hook">"Evidence you're doing better than your brain is telling you."</p>
+
+    <div class="card">
+      <div class="card-title">Log a win</div>
+      <div class="form-grid">
+        <div class="field-group">
+          <label for="wWin">What happened?</label>
+          <input type="text" id="wWin" placeholder="No minimum size. Getting out of bed counts.">
+        </div>
+        <div class="form-row">
+          <div class="field-group">
+            <label for="wCategory">Category</label>
+            <select id="wCategory">
+              <option value="">— what kind of win —</option>
+              <option>Personal</option>
+              <option>Work</option>
+              <option>Health</option>
+              <option>Relationship</option>
+              <option>Creative</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="wDate">Date</label>
+            <input type="date" id="wDate">
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="saveWin()">Save this win</button>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <span class="log-title">Your wins</span>
+        <div style="display:flex;align-items:center;gap:0.8rem">
+          <button class="remind-btn" onclick="remindMe()">✦ Remind me</button>
+          <span class="log-count" id="winsCount">0 wins</span>
+        </div>
+      </div>
+      <div id="winReminder" style="display:none" class="card" style="margin-bottom:1rem">
+        <p style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.05rem;color:var(--gold);margin-bottom:0.3rem">A win worth remembering:</p>
+        <p id="reminderText" style="font-family:'DM Sans',sans-serif;font-size:0.95rem;color:var(--cream)"></p>
+      </div>
+      <div id="winList"><div class="empty-state">Every win you log here is evidence against the hard days.</div></div>
+    </div>
+  </div>
+  <div id="tab-crisis" style="display:none">
+    <h2 class="section-title">Crisis &amp; Calm</h2>
+    <p class="section-hook">"You've gotten through every hard day so far. That's 100%."</p>
+
+    <div class="card">
+      <div class="card-title">Resources — always here</div>
+      <a class="crisis-resource" href="tel:988">
+        <span class="crisis-resource-icon">📞</span>
+        <div class="crisis-resource-text">
+          <div class="crisis-resource-name">988 Suicide &amp; Crisis Lifeline</div>
+          <div class="crisis-resource-detail">Call or text — 24/7, free, confidential</div>
+        </div>
+        <span class="crisis-resource-action">CALL 988</span>
+      </a>
+      <a class="crisis-resource" href="sms:741741&body=HOME">
+        <span class="crisis-resource-icon">💬</span>
+        <div class="crisis-resource-text">
+          <div class="crisis-resource-name">Crisis Text Line</div>
+          <div class="crisis-resource-detail">Text HOME to 741741 — available 24/7</div>
+        </div>
+        <span class="crisis-resource-action">TEXT NOW</span>
+      </a>
+      <p class="crisis-note">You don't have to be in crisis to use these. Hard days count too.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">My grounding techniques</div>
+      <div class="field-group">
+        <label for="cGrounding">What works for you</label>
+        <textarea id="cGrounding" placeholder="Box breathing, cold water, stepping outside, counting objects in the room..." style="min-height:110px" oninput="autosaveCrisis()"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">What works for me</div>
+      <div class="field-group">
+        <label for="cWhatWorks">Notes to your future self</label>
+        <textarea id="cWhatWorks" placeholder="What's helped before. What to avoid. What to remember." style="min-height:110px" oninput="autosaveCrisis()"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">My people</div>
+      <p class="privacy-note" style="margin-bottom:1rem">Stored locally. Never synced. Only you can see this.</p>
+      <div id="contactList"></div>
+      <div class="form-grid" style="margin-top:1rem">
+        <div class="contact-item" style="border:none;padding:0">
+          <div class="field-group">
+            <label for="cName">Name</label>
+            <input type="text" id="cName" placeholder="Who to call">
+          </div>
+          <div class="field-group">
+            <label for="cRel">Relationship</label>
+            <input type="text" id="cRel" placeholder="Therapist, sister, friend...">
+          </div>
+          <div></div>
+        </div>
+        <div class="form-row">
+          <div class="field-group">
+            <label for="cPhone">Phone</label>
+            <input type="text" id="cPhone" placeholder="Their number">
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn-primary" style="margin:0;padding:0.7rem 1.5rem" onclick="saveContact()">Add person</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+
+<script src="script.js"></script>
+</body>
+</html>
